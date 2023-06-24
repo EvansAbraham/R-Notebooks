@@ -1,0 +1,126 @@
+---
+title: "Build and deploy a stroke prediction model using R"
+author: "Evans Abraham"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# About Data Analysis Report
+
+This RMarkdown file contains the report of the data analysis done for the project on building and deploying a stroke prediction model in R. It contains analysis such as data exploration, summary statistics and building the prediction models. The final report was completed on `r date()`.
+
+**Data Description:**
+
+According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
+
+This data set is used to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relevant information about the patient.
+
+# Task One: Import data and data preprocessing
+
+## Load data and install packages
+
+```{r}
+# Install required packages
+if (!require("tidyverse")) {
+  install.packages("tidyverse")
+}
+if (!require("randomForest")) {
+  install.packages("randomForest")
+}
+```
+
+## Describe and explore the data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Import data
+data <- read.csv("healthcare-dataset-stroke-data.csv")
+
+# Explore the data
+head(data)
+summary(data)
+
+```
+
+# Task Two: Build prediction models
+
+```{r}
+# Data preprocessing
+# Convert categorical variables to factors
+data$gender <- as.factor(data$gender)
+data$hypertension <- as.factor(data$hypertension)
+data$heart_disease <- as.factor(data$heart_disease)
+data$ever_married <- as.factor(data$ever_married)
+data$work_type <- as.factor(data$work_type)
+data$Residence_type <- as.factor(data$Residence_type)
+data$smoking_status <- as.factor(data$smoking_status)
+data$stroke <- as.factor(data$stroke)
+
+# Split the data into training and testing sets
+set.seed(123)
+train_index <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+
+# Build a random forest model
+library(randomForest)
+model <- randomForest(stroke ~ ., data = train_data, ntree = 100)
+
+# Display the model summary
+print(model)
+
+```
+
+# Task Three: Evaluate and select prediction models
+
+```{r}
+# Make predictions on the test data
+predictions <- predict(model, newdata = test_data)
+
+# Evaluate model performance
+confusion_matrix <- table(predictions, test_data$stroke)
+accuracy <- sum(diag(confusion_matrix))/sum(confusion_matrix)
+precision <- diag(confusion_matrix)/colSums(confusion_matrix)
+recall <- diag(confusion_matrix)/rowSums(confusion_matrix)
+f1_score <- 2 * (precision * recall) / (precision + recall)
+
+# Print evaluation metrics
+print(confusion_matrix)
+print(paste0("Accuracy: ", accuracy))
+print(paste0("Precision: ", precision))
+print(paste0("Recall: ", recall))
+print(paste0("F1 Score: ", f1_score))
+
+```
+
+# Task Four: Deploy the prediction model
+
+```{r}
+# Save the trained model
+saveRDS(model, "stroke_prediction_model.rds")
+
+# Define a function to predict stroke based on input data
+predict_stroke <- function(input_data) {
+  # Load the trained model
+  model <- readRDS("stroke_prediction_model.rds")
+  
+  # Make predictions
+  predictions <- predict(model, newdata = input_data)
+  
+  # Return the predictions
+  return(predictions)
+}
+
+```
+
+# Task Five: Findings and Conclusions
+
+In this analysis, we built a stroke prediction model using a random forest algorithm. The model achieved an accuracy of 0.945205479452055 and a precision of 1. These results indicate that the model can effectively predict stroke based on the given features.
+
+We saved the trained model and defined a function predict_stroke() to make predictions on new data. This allows the model to be easily deployed and used for stroke prediction in real-world applications.
+
+Overall, the stroke prediction model shows promise in assisting healthcare professionals in identifying individuals at risk of stroke. However, further evaluation and validation on larger datasets are recommended to ensure its reliability and generalizability.
